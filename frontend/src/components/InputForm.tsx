@@ -24,20 +24,18 @@ export default function InputForm() {
     location: null,
   });
 
-  const navigate = useNavigate(); // navigation
+  const navigate = useNavigate();
 
   const handleSubmit = () => {
-    if (!form.crop || !form.quantity || !form.vehicle) {
+    if (!form.crop || !form.quantity || !form.vehicle || !form.location) {
       alert("Please fill all fields");
       return;
     }
 
     const calculated = markets.map((m) => {
       const revenue = m.price * form.quantity;
-
       const transport =
         m.distance * (vehicleRates[form.vehicle] || 20);
-
       const netProfit = revenue - transport;
 
       return {
@@ -48,32 +46,52 @@ export default function InputForm() {
       };
     });
 
-    // FIND BEST MARKET
     const best = calculated.reduce((prev, curr) =>
       curr.netProfit > prev.netProfit ? curr : prev
     );
 
-    // FIND WORST MARKET
     const minProfit = Math.min(
       ...calculated.map((m) => m.netProfit)
     );
 
-    // CALCULATE SAVINGS
     const savingsValue = best.netProfit - minProfit;
 
-    // ADD FLAG
     const finalResults = calculated.map((m) => ({
       ...m,
       isBest: m.name === best.name,
     }));
 
-    // NAVIGATE TO DASHBOARD
-    navigate("/dashboard", {
-      state: {
-        results: finalResults,
-        savings: savingsValue,
-      },
-    });
+    // ✅ STORE DASHBOARD DATA
+    localStorage.setItem(
+      "dashboardData",
+      JSON.stringify(finalResults)
+    );
+
+    localStorage.setItem(
+      "dashboardSavings",
+      JSON.stringify(savingsValue)
+    );
+
+    // 🔥 ADD HISTORY FEATURE
+    const historyEntry = {
+      crop: form.crop,
+      quantity: form.quantity,
+      vehicle: form.vehicle,
+      bestMarket: best.name,
+      profit: best.netProfit,
+      timestamp: new Date().toISOString(),
+    };
+
+    const existingHistory = JSON.parse(
+      localStorage.getItem("history") || "[]"
+    );
+
+    const updatedHistory = [historyEntry, ...existingHistory].slice(0, 5);
+
+    localStorage.setItem("history", JSON.stringify(updatedHistory));
+
+    // Navigate
+    navigate("/dashboard");
   };
 
   return (
@@ -82,7 +100,6 @@ export default function InputForm() {
         🚜 Krishi Route Optimizer
       </h1>
 
-      {/* Crop */}
       <div className="mb-4">
         <label className="block mb-1 font-medium">Crop</label>
         <select
@@ -98,7 +115,6 @@ export default function InputForm() {
         </select>
       </div>
 
-      {/* Quantity */}
       <div className="mb-4">
         <label className="block mb-1 font-medium">
           Quantity (quintals)
@@ -116,7 +132,6 @@ export default function InputForm() {
         />
       </div>
 
-      {/* Vehicle */}
       <div className="mb-4">
         <label className="block mb-1 font-medium">Vehicle</label>
         <select
@@ -132,7 +147,6 @@ export default function InputForm() {
         </select>
       </div>
 
-      {/* Map */}
       <div className="mb-6">
         <label className="block mb-2 font-medium">
           Select Location 📍
@@ -144,7 +158,6 @@ export default function InputForm() {
         />
       </div>
 
-      {/* Button */}
       <button
         onClick={handleSubmit}
         className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition"
