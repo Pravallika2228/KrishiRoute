@@ -1,6 +1,6 @@
 import { useState } from "react";
 import MapPicker from "./MapPicker";
-import { markets } from "../data/markets";
+import API from "../api";
 import { useNavigate } from "react-router-dom";
 
 type FormData = {
@@ -8,12 +8,6 @@ type FormData = {
   quantity: number;
   vehicle: string;
   location: any;
-};
-
-const vehicleRates: any = {
-  tractor: 20,
-  truck: 40,
-  tataAce: 25,
 };
 
 export default function InputForm() {
@@ -26,72 +20,71 @@ export default function InputForm() {
 
   const navigate = useNavigate();
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.crop || !form.quantity || !form.vehicle || !form.location) {
       alert("Please fill all fields");
       return;
     }
 
-    const calculated = markets.map((m) => {
-      const revenue = m.price * form.quantity;
-      const transport =
-        m.distance * (vehicleRates[form.vehicle] || 20);
-      const netProfit = revenue - transport;
+    try {
+      const res = await API.post("/profit/calculate", {
+        crop: form.crop,
+        quantity: form.quantity,
+        vehicle: form.vehicle,
+        sourceLocation: form.location,
+      });
 
-      return {
+      const { bestMandi, allOptions } = res.data;
+
+      const filtered = allOptions.filter((m: any) => m.netProfit > 0);
+      if (filtered.length === 0) {
+        alert("No profitable mandis found");
+        return;
+      }
+
+      const sorted = filtered.sort(
+        (a: any, b: any) => b.netProfit - a.netProfit
+      );
+
+      const top5 = sorted.slice(0, 5);
+
+      const minProfit = Math.min(...top5.map((m: any) => m.netProfit));
+      const savings = bestMandi.netProfit - minProfit;
+
+      const finalResults = top5.map((m: any) => ({
         ...m,
-        revenue,
-        transport,
-        netProfit,
+        name: m.mandi, // 🔥 IMPORTANT FIX for your dashboard
+        isBest: m.mandi === bestMandi.mandi,
+      }));
+
+      // 🔥 ADD YOUR HISTORY FEATURE
+      const historyEntry = {
+        crop: form.crop,
+        quantity: form.quantity,
+        vehicle: form.vehicle,
+        bestMarket: bestMandi.mandi,
+        profit: bestMandi.netProfit,
+        timestamp: new Date().toISOString(),
       };
-    });
 
-    const best = calculated.reduce((prev, curr) =>
-      curr.netProfit > prev.netProfit ? curr : prev
-    );
+      const existingHistory = JSON.parse(
+        localStorage.getItem("history") || "[]"
+      );
 
-    const minProfit = Math.min(
-      ...calculated.map((m) => m.netProfit)
-    );
+      const updatedHistory = [historyEntry, ...existingHistory].slice(0, 5);
 
-    const savingsValue = best.netProfit - minProfit;
+      localStorage.setItem("history", JSON.stringify(updatedHistory));
 
-    const finalResults = calculated.map((m) => ({
-      ...m,
-      isBest: m.name === best.name,
-    }));
+      // 🔥 STORE FOR DASHBOARD (IMPORTANT FIX)
+      localStorage.setItem("dashboardData", JSON.stringify(finalResults));
+      localStorage.setItem("dashboardSavings", JSON.stringify(savings));
 
-    // ✅ STORE DASHBOARD DATA
-    localStorage.setItem(
-      "dashboardData",
-      JSON.stringify(finalResults)
-    );
+      navigate("/dashboard");
 
-    localStorage.setItem(
-      "dashboardSavings",
-      JSON.stringify(savingsValue)
-    );
-
-    // 🔥 ADD HISTORY FEATURE
-    const historyEntry = {
-      crop: form.crop,
-      quantity: form.quantity,
-      vehicle: form.vehicle,
-      bestMarket: best.name,
-      profit: best.netProfit,
-      timestamp: new Date().toISOString(),
-    };
-
-    const existingHistory = JSON.parse(
-      localStorage.getItem("history") || "[]"
-    );
-
-    const updatedHistory = [historyEntry, ...existingHistory].slice(0, 5);
-
-    localStorage.setItem("history", JSON.stringify(updatedHistory));
-
-    // Navigate
-    navigate("/dashboard");
+    } catch (err) {
+      console.error(err);
+      alert("Error fetching data from server");
+    }
   };
 
   return (
@@ -109,9 +102,11 @@ export default function InputForm() {
           }
         >
           <option value="">Select Crop</option>
-          <option value="onion">Onion</option>
+          <option value="arhar">Arhar (Tur)</option>
+          <option value="cotton">Cotton</option>
+          <option value="jowar">Jowar</option>
+          <option value="soyabean">Soyabean</option>
           <option value="wheat">Wheat</option>
-          <option value="tomato">Tomato</option>
         </select>
       </div>
 
@@ -141,9 +136,9 @@ export default function InputForm() {
           }
         >
           <option value="">Select Vehicle</option>
-          <option value="tractor">Tractor</option>
-          <option value="truck">Truck</option>
-          <option value="tataAce">Tata Ace</option>
+          <option value="TRACTOR">Tractor</option>
+          <option value="TRUCK">Truck</option>
+          <option value="TATA_ACE">Tata Ace</option>
         </select>
       </div>
 

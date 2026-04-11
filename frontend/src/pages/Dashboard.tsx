@@ -11,6 +11,11 @@ export default function Dashboard() {
   const [history, setHistory] = useState<any[]>([]);
   const [username, setUsername] = useState("");
 
+  const formatCurrency = (value: number) =>
+    value < 0
+      ? `-₹${Math.abs(Math.round(value)).toLocaleString("en-IN")}`
+      : `₹${Math.round(value).toLocaleString("en-IN")}`;
+
   useEffect(() => {
     const storedResults = localStorage.getItem("dashboardData");
     const storedSavings = localStorage.getItem("dashboardSavings");
@@ -42,83 +47,77 @@ export default function Dashboard() {
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-8">
 
-      {/* 🔥 HEADER */}
+      {/* HEADER */}
       <div className="text-center">
-        <h1 className="text-2xl md:text-4xl font-bold tracking-tight">
+        <h1 className="text-2xl md:text-4xl font-bold">
           👋 Welcome back, {username || "Farmer"}
         </h1>
-        <p className="text-gray-500 mt-2 text-sm md:text-base">
+        <p className="text-gray-500 mt-2">
           Smart insights for your crop selling decisions
         </p>
       </div>
 
-      {/* 💰 HERO */}
-      <div className="bg-gradient-to-r from-green-500 to-green-700 text-white p-5 md:p-6 rounded-2xl shadow-lg hover:shadow-xl transition">
-        <h2 className="text-lg md:text-xl font-semibold mb-2">
+      {/* HERO */}
+      <div className="bg-gradient-to-r from-green-500 to-green-700 text-white p-6 rounded-2xl shadow-lg">
+        <h2 className="text-xl font-semibold mb-2">
           💰 Best Market Recommendation
         </h2>
 
-        <p className="text-sm md:text-base">
+        <p>
           Sell at <span className="font-bold">{best.name}</span> to earn{" "}
-          <span className="font-bold">₹{best.netProfit}</span>
+          <span className="font-bold">{formatCurrency(best.netProfit)}</span>
         </p>
 
-        <p className="text-xs md:text-sm mt-2 opacity-90">
-          You gain ₹{savings} more compared to the lowest option
+        <p className="text-sm mt-2 opacity-90">
+          You gain {formatCurrency(savings)} more compared to the lowest option
         </p>
 
         <button
           onClick={() => navigate("/map")}
-          className="mt-4 bg-white text-green-700 px-4 py-2 rounded-lg font-medium hover:scale-105 active:scale-95 transition shadow-sm"
+          className="mt-4 bg-white text-green-700 px-4 py-2 rounded-lg font-medium"
         >
           📍 View Route Map
         </button>
       </div>
 
-      {/* 📊 METRICS */}
+      {/* METRICS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
 
-        <div className="bg-white p-5 rounded-2xl shadow-sm hover:shadow-md transition text-center">
-          <p className="text-gray-500 text-sm">📦 Markets Compared</p>
-          <p className="text-xl md:text-2xl font-bold">
-            {results.length}
+        <div className="bg-white p-5 rounded-2xl shadow text-center">
+          <p className="text-gray-500 text-sm">Markets Compared</p>
+          <p className="text-xl font-bold">{results.length}</p>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl shadow text-center">
+          <p className="text-gray-500 text-sm">Best Profit</p>
+          <p className="text-xl font-bold text-green-600">
+            {formatCurrency(best.netProfit)}
           </p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-sm hover:shadow-md transition text-center">
-          <p className="text-gray-500 text-sm">💰 Best Profit</p>
-          <p className="text-xl md:text-2xl font-bold text-green-600">
-            ₹{best.netProfit}
-          </p>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl shadow-sm hover:shadow-md transition text-center">
-          <p className="text-gray-500 text-sm">📈 Savings</p>
-          <p className="text-xl md:text-2xl font-bold text-green-600">
-            ₹{savings}
+        <div className="bg-white p-5 rounded-2xl shadow text-center">
+          <p className="text-gray-500 text-sm">Savings</p>
+          <p className="text-xl font-bold text-green-600">
+            {formatCurrency(savings)}
           </p>
         </div>
       </div>
 
-      {/* 🏪 MARKET CARDS */}
+      {/* MARKET CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {results.map((r: any, i: number) => (
           <div
             key={i}
-            className={`p-5 rounded-2xl shadow-sm transition hover:-translate-y-1 hover:shadow-lg ${
-              r.isBest
-                ? "bg-green-50 border border-green-400"
-                : "bg-white"
+            className={`p-5 rounded-2xl shadow ${
+              r.isBest ? "bg-green-50 border border-green-400" : "bg-white"
             }`}
           >
-            <h3 className="font-bold text-lg">{r.name}</h3>
-
+            <h3 className="font-bold">{r.name}</h3>
             <p className="text-sm text-gray-500">
-              Distance: {r.distance} km
+              Distance: {Math.round(r.distance)} km
             </p>
-
-            <p className="mt-2 text-green-600 font-semibold">
-              ₹{r.netProfit}
+            <p className="text-green-600 font-semibold">
+              {formatCurrency(r.netProfit)}
             </p>
 
             {r.isBest && (
@@ -130,19 +129,17 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* 📈 CHART */}
+      {/* CHART */}
       <ProfitChart data={results} />
 
-      {/* 🕒 RECENT ACTIVITY */}
+      {/* RECENT ACTIVITY */}
       <div>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg md:text-2xl font-bold">
-            🕒 Recent Activity
-          </h2>
+        <div className="flex justify-between mb-4">
+          <h2 className="text-xl font-bold">🕒 Recent Activity</h2>
 
           <button
             onClick={() => navigate("/history")}
-            className="text-green-600 text-sm font-semibold hover:underline"
+            className="text-green-600 text-sm font-semibold"
           >
             View All →
           </button>
@@ -151,26 +148,20 @@ export default function Dashboard() {
         {history.length === 0 ? (
           <p className="text-gray-500">No history yet</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-4">
             {history.slice(0, 2).map((h, i) => (
-              <div
-                key={i}
-                className="p-4 bg-white rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition"
-              >
+              <div key={i} className="p-4 bg-white rounded-xl shadow">
                 <p className="font-semibold">
-                  {h.crop.toUpperCase()} → {h.bestMarket}
+                  {h.crop} → {h.bestMarket}
                 </p>
-
                 <p className="text-sm text-gray-500">
                   Qty: {h.quantity} | {h.vehicle}
                 </p>
-
                 <p className="text-xs text-gray-400">
                   {new Date(h.timestamp).toLocaleString()}
                 </p>
-
-                <p className="text-green-600 font-bold mt-1">
-                  ₹{h.profit}
+                <p className="text-green-600 font-bold">
+                  {formatCurrency(h.profit)}
                 </p>
               </div>
             ))}
@@ -178,11 +169,11 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* 🔘 CTA */}
+      {/* CTA */}
       <div className="text-center">
         <button
           onClick={() => navigate("/optimizer")}
-          className="bg-green-600 hover:bg-green-700 active:scale-95 text-white px-6 py-3 rounded-xl font-medium transition shadow-sm"
+          className="bg-green-600 text-white px-6 py-3 rounded-xl"
         >
           Try Another Calculation
         </button>
