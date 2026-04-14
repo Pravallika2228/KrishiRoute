@@ -1,79 +1,88 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import API from "../api";
+
+const isValidEmail = (email: string) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+const isStrongPassword = (password: string) =>
+  /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/.test(password);
 
 export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   const navigate = useNavigate();
 
-  const handleSignup = () => {
-    if (!email || !password) {
-      alert("Please fill all fields");
-      return;
+  const validate = () => {
+    const newErrors: { email?: string; password?: string } = {};
+
+    if (!email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!isValidEmail(email)) {
+      newErrors.email = "Enter valid email";
     }
 
-    setLoading(true);
+    if (!password.trim()) {
+      newErrors.password = "Password required";
+    } else if (!isStrongPassword(password)) {
+      newErrors.password =
+        "Min 8 chars, include letter, number, special char";
+    }
 
-    setTimeout(() => {
-      const user = { email, password };
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("isLoggedIn", "true");
+  const handleSignup = async () => {
+    if (!validate()) return;
 
-      // 🔥 force app re-render
-      window.dispatchEvent(new Event("storage"));
+    try {
+      setLoading(true);
+      await API.post("/auth/signup", { email, password });
 
-      alert("Signup successful 🎉 Welcome to KrishiRoute!");
-
-      navigate("/", { replace: true });
-    }, 800);
+      alert("Signup successful 🎉");
+      navigate("/login");
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Signup failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-100 to-green-200">
-      <div className="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md">
-
-        <h2 className="text-3xl font-bold text-center mb-6 text-green-700">
+    <div className="min-h-screen flex items-center justify-center bg-green-100">
+      <div className="bg-white p-8 rounded-xl shadow w-full max-w-md">
+        <h2 className="text-2xl font-bold text-center mb-4">
           Create Account 🌱
         </h2>
 
-        <p className="text-center text-gray-500 mb-6">
-          Start optimizing your market profits today
-        </p>
-
         <input
-          type="text"
+          type="email"
           placeholder="Email"
-          className="w-full border p-3 mb-4 rounded-xl focus:ring-2 focus:ring-green-400"
+          value={email}
+          className="w-full border p-3 mb-2 rounded"
           onChange={(e) => setEmail(e.target.value)}
         />
+        {errors.email && <p className="text-red-500">{errors.email}</p>}
 
         <input
           type="password"
           placeholder="Password"
-          className="w-full border p-3 mb-6 rounded-xl focus:ring-2 focus:ring-green-400"
+          value={password}
+          className="w-full border p-3 mb-2 rounded"
           onChange={(e) => setPassword(e.target.value)}
         />
+        {errors.password && <p className="text-red-500">{errors.password}</p>}
 
         <button
           onClick={handleSignup}
-          disabled={loading}
-          className="w-full bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 transition"
+          className="w-full bg-green-600 text-white py-2 rounded mt-2"
         >
-          {loading ? "Creating account..." : "Signup"}
+          {loading ? "Creating..." : "Signup"}
         </button>
-
-        <p className="text-center mt-5 text-sm">
-          Already have an account?
-          <span
-            onClick={() => navigate("/login")}
-            className="text-green-600 ml-2 cursor-pointer font-semibold"
-          >
-            Login
-          </span>
-        </p>
       </div>
     </div>
   );

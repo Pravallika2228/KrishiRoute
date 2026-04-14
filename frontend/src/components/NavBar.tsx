@@ -7,43 +7,45 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const isLoggedIn = localStorage.getItem("isLoggedIn");
+  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     if (user.email) {
       setUsername(user.email.split("@")[0]);
+    } else {
+      setUsername("");
     }
-  }, []);
+  }, [isLoggedIn]);
 
   const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     localStorage.removeItem("isLoggedIn");
-    navigate("/login");
+
     setOpen(false);
+    navigate("/login", { replace: true });
   };
 
   const navLink = (path: string) =>
-    `relative group ${
+    `relative ${
       location.pathname === path
         ? "text-green-600 font-semibold"
         : "text-gray-700 hover:text-green-600"
     }`;
 
   return (
-    <nav className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b">
-
-      <div className="max-w-7xl mx-auto px-6 md:px-10 py-4 flex justify-between items-center">
+    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
 
         {/* LOGO */}
-        <Link to="/">
-          <h1 className="text-xl font-bold text-green-600 tracking-tight">
-            🚜 KrishiRoute
-          </h1>
+        <Link to="/" className="text-xl font-bold text-green-600">
+          🚜 KrishiRoute
         </Link>
 
         {/* CENTER NAV */}
         {isLoggedIn && (
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium">
+          <div className="hidden md:flex gap-8 text-sm">
             <Link to="/optimizer" className={navLink("/optimizer")}>
               Optimizer
             </Link>
@@ -57,23 +59,18 @@ export default function Navbar() {
         {/* RIGHT */}
         <div className="flex items-center gap-4">
 
-          {/* AVATAR */}
+          {/* PROFILE */}
           {isLoggedIn && (
             <button
               onClick={() => navigate("/profile")}
-              className="w-9 h-9 rounded-full bg-green-600 text-white flex items-center justify-center font-semibold hover:scale-105 transition"
+              className="w-9 h-9 bg-green-600 text-white rounded-full flex items-center justify-center"
             >
-              {username ? username[0].toUpperCase() : "U"}
+              {username?.[0]?.toUpperCase() || "U"}
             </button>
           )}
 
           {/* MENU */}
-          <button
-            onClick={() => setOpen(!open)}
-            className="text-xl text-gray-700 hover:scale-110 transition"
-          >
-            ☰
-          </button>
+          <button onClick={() => setOpen(!open)}>☰</button>
         </div>
       </div>
 
@@ -86,7 +83,10 @@ export default function Navbar() {
         }`}
       >
         <div className="flex justify-end">
-          <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-black">
+          <button
+            onClick={() => setOpen(false)}
+            className="text-gray-400 hover:text-black"
+          >
             ✕
           </button>
         </div>

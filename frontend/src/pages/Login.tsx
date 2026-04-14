@@ -1,38 +1,68 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import API from "../api";
+
+// ✅ Email validation
+const isValidEmail = (email: string) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+  }>({});
+
   const navigate = useNavigate();
 
-  const handleLogin = () => {
-    if (!email || !password) {
-      alert("Please fill all fields");
-      return;
+  // ✅ Validation
+  const validate = () => {
+    const newErrors: { email?: string; password?: string } = {};
+
+    if (!email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!isValidEmail(email)) {
+      newErrors.email = "Enter valid email (example@gmail.com)";
     }
 
-    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-
-    if (storedUser.email !== email || storedUser.password !== password) {
-      alert("Invalid credentials");
-      return;
+    if (!password.trim()) {
+      newErrors.password = "Password is required";
+    } else if (password.length < 8) {
+      newErrors.password = "Minimum 8 characters required";
     }
 
-    setLoading(true);
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-    setTimeout(() => {
+  // ✅ API LOGIN
+  const handleLogin = async () => {
+    if (!validate()) return;
+
+    try {
+      setLoading(true);
+
+      const res = await API.post("/auth/login", {
+        email,
+        password,
+      });
+
+      // ✅ Store auth data
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
       localStorage.setItem("isLoggedIn", "true");
-
-      // 🔥 force app re-render
-      window.dispatchEvent(new Event("storage"));
 
       alert("Login successful 🎉");
 
       navigate("/", { replace: true });
-    }, 800);
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -47,20 +77,43 @@ export default function Login() {
           Login to continue optimizing your routes
         </p>
 
+        {/* EMAIL */}
         <input
-          type="text"
+          type="email"
           placeholder="Email"
-          className="w-full border p-3 mb-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-400"
-          onChange={(e) => setEmail(e.target.value)}
+          value={email}
+          className={`w-full border p-3 mb-1 rounded-xl ${
+            errors.email ? "border-red-500" : "border-gray-300"
+          }`}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            setErrors((prev) => ({ ...prev, email: "" }));
+          }}
         />
+        {errors.email && (
+          <p className="text-red-500 text-sm mb-3">{errors.email}</p>
+        )}
 
+        {/* PASSWORD */}
         <input
           type="password"
           placeholder="Password"
-          className="w-full border p-3 mb-6 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-400"
-          onChange={(e) => setPassword(e.target.value)}
+          value={password}
+          className={`w-full border p-3 mb-1 rounded-xl ${
+            errors.password ? "border-red-500" : "border-gray-300"
+          }`}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            setErrors((prev) => ({ ...prev, password: "" }));
+          }}
         />
+        {errors.password && (
+          <p className="text-red-500 text-sm mb-3">
+            {errors.password}
+          </p>
+        )}
 
+        {/* BUTTON */}
         <button
           onClick={handleLogin}
           disabled={loading}
@@ -78,6 +131,7 @@ export default function Login() {
             Create account
           </span>
         </p>
+
       </div>
     </div>
   );

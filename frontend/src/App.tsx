@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+
 import Navbar from "./components/NavBar";
 import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
@@ -18,6 +19,7 @@ function App() {
     localStorage.getItem("isLoggedIn") === "true"
   );
 
+  // 🔥 Auto update login state
   useEffect(() => {
     const checkLogin = () => {
       setIsLoggedIn(localStorage.getItem("isLoggedIn") === "true");
@@ -34,21 +36,25 @@ function App() {
         <Navbar />
 
         <Routes>
-          {/* Root Route */}
+          {/* HOME */}
+          <Route path="/" element={<Home />} />
+
+          {/* AUTH */}
           <Route
-            path="/"
-            element={isLoggedIn ? <Home /> : <Signup />}
+            path="/login"
+            element={!isLoggedIn ? <Login /> : <Navigate to="/" replace />}
           />
 
-          {/* Public */}
+          <Route
+            path="/signup"
+            element={!isLoggedIn ? <Signup /> : <Navigate to="/" replace />}
+          />
+
+          {/* PUBLIC */}
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/history" element={<History/>} />
-          <Route path="/map" element={<MapPage/>} />
 
-          {/* Protected */}
+          {/* PROTECTED */}
           <Route
             path="/optimizer"
             element={
@@ -63,6 +69,24 @@ function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/map"
+            element={
+              <ProtectedRoute>
+                <MapPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/history"
+            element={
+              <ProtectedRoute>
+                <History />
               </ProtectedRoute>
             }
           />
