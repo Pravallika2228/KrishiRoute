@@ -39,6 +39,7 @@ export const getMandis = async (req: Request, res: Response) => {
         const distance = m.location
           ? getDistance(location, m.location)
           : 999;
+        
 
         return {
           ...m,
